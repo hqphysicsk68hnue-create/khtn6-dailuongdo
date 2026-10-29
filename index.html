@@ -1020,11 +1020,20 @@ async function bdRefresh(){
  else{qload();BOARD=QA.map(a=>({id:a.id,name:a.name,cls:a.cls,no:a.no,score:a.score,sec:a.sec,at:a.at}))}
  bdPaint()}
 function bdPaint(){const q=$('qApp');if(!q||q.classList.contains('hidden'))return;
- if(!$('qStart').classList.contains('hidden'))qboardStart();
- if(!$('qResult').classList.contains('hidden')&&$('qBoardBody'))$('qBoardBody').innerHTML=qboardRows()}
-function qboardRows(){const L=qrank().slice(0,100),mine=new Set(QA.map(a=>String(a.id)));
- if(!L.length)return '<p>Chưa có ai nộp bài. Hãy là người đầu tiên!</p>';
- return `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:520px"><tr style="background:#e0f2fe;text-align:left"><th style="padding:6px">Hạng</th><th style="padding:6px">Họ và tên</th><th style="padding:6px">Lần làm</th><th style="padding:6px">Điểm (/10)</th><th style="padding:6px">Thời gian</th><th></th></tr>`+L.map((r,i)=>`<tr style="border-bottom:1px solid #e2e8f0;${String(r.id)==String(QHL)?'background:#fef9c3;font-weight:700':''}"><td style="padding:6px">${['🥇','🥈','🥉'][i]||i+1}</td><td style="padding:6px">${esc(r.name)}${r.cls?` <span style="color:#64748b;font-size:13px">(${esc(r.cls)})</span>`:''}</td><td style="padding:6px">${r.no}</td><td style="padding:6px"><b>${r.score}</b></td><td style="padding:6px">${qmmss(r.sec)}</td><td style="padding:6px">${mine.has(String(r.id))?`<button class="btn" style="padding:2px 10px" onclick="qreview('${r.id}')">🔍 Xem lại</button>`:''}</td></tr>`).join('')+`</table></div><p class="text-sm" style="color:#64748b;margin-top:8px">Xếp theo: điểm cao hơn → thời gian ít hơn → lần làm sớm hơn. ${NET()?'Bảng tự cập nhật cho mọi bạn có đường link.':'Dữ liệu lưu trong trình duyệt của máy này.'}</p>`}
+ if(!$('qStart').classList.contains('hidden')||!$('qResult').classList.contains('hidden'))qboardTbl()}
+let QCLS='';
+function qboardRows(){setTimeout(qboardTbl,0);
+ return `<div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>Lọc theo lớp:</b><select class="qbc" onchange="QCLS=this.value;qboardTbl()" style="border:2px solid #cbd5e1;border-radius:10px;padding:4px 10px"></select><span class="qbn text-sm" style="color:#64748b"></span></div><div class="qbs" style="max-height:440px;overflow:auto;border:1px solid #e2e8f0;border-radius:10px"></div><p class="text-sm" style="color:#64748b;margin-top:8px">Xếp theo: điểm cao hơn → thời gian ít hơn → lần làm sớm hơn. ${NET()?'Bảng tự cập nhật cho mọi bạn có đường link.':'Dữ liệu lưu trong trình duyệt của máy này.'}</p>`}
+function qboardTbl(){
+ const cl=[...new Set(BOARD.map(r=>String(r.cls||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'vi',{numeric:true}));
+ if(QCLS&&!cl.includes(QCLS))QCLS='';
+ const L=qrank().filter(r=>!QCLS||String(r.cls||'').trim()==QCLS),mine=new Set(QA.map(a=>String(a.id)));
+ const opt=`<option value="">Tất cả các lớp</option>`+cl.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+ document.querySelectorAll('.qbc').forEach(s=>{if(s.dataset.k!==opt){s.innerHTML=opt;s.dataset.k=opt}s.value=QCLS});
+ const th='padding:6px;position:sticky;top:0;background:#e0f2fe;text-align:left';
+ const body=!L.length?'<p style="padding:10px">Chưa có ai nộp bài.</p>':`<table style="width:100%;border-collapse:collapse;min-width:520px"><tr><th style="${th}">Hạng</th><th style="${th}">Họ và tên</th><th style="${th}">Lần làm</th><th style="${th}">Điểm (/10)</th><th style="${th}">Thời gian</th><th style="${th}"></th></tr>`+L.map((r,i)=>`<tr style="border-bottom:1px solid #e2e8f0;${String(r.id)==String(QHL)?'background:#fef9c3;font-weight:700':''}"><td style="padding:6px">${['🥇','🥈','🥉'][i]||i+1}</td><td style="padding:6px">${esc(r.name)}${r.cls?` <span style="color:#64748b;font-size:13px">(${esc(r.cls)})</span>`:''}</td><td style="padding:6px">${r.no}</td><td style="padding:6px"><b>${r.score}</b></td><td style="padding:6px">${qmmss(r.sec)}</td><td style="padding:6px">${mine.has(String(r.id))?`<button class="btn" style="padding:2px 10px" onclick="qreview('${r.id}')">🔍 Xem lại</button>`:''}</td></tr>`).join('')+`</table>`;
+ document.querySelectorAll('.qbs').forEach(e=>{const t=e.scrollTop;e.innerHTML=body;e.scrollTop=t});
+ document.querySelectorAll('.qbn').forEach(e=>e.textContent=`Hiển thị ${L.length} lượt làm`+(QCLS?` của lớp ${QCLS}`:''))}
 function qboardStart(){const e=$('qStartBoard');if(e)e.innerHTML=`<h2 class="font-extrabold" style="font-size:20px;margin-bottom:6px">🏆 Bảng xếp hạng</h2>`+qboardRows()}
 const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const qkey=u=>String(u.name).trim().toLowerCase()+'|'+String(u.cls).trim().toLowerCase();
